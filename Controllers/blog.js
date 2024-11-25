@@ -3,18 +3,39 @@ const mongoose = require("mongoose"); // Make sure mongoose is required
 const { UserModel } = require("../Models/user");
 
 const createBlog = async (req, res) => {
-  const { title, imgUrl, description, categoryTitle } = req.body;
+  const { title, description, categoryTitle } = req.body;
   const { fullName, email, _id: id } = req.user;
+
   try {
-    if (!title || !imgUrl || !description || !categoryTitle) {
-      return res
-        .status(400)
-        .json({ success: false, message: "All fields are required" });
+    // Validate that required fields are provided
+    if (!title || !description || !categoryTitle) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
+    // Validate that an image file is provided
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Upload the blog image" });
+    }
+
+    // Check if the uploaded file is an image (optional validation)
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ success: false, message: "Invalid image type. Allowed types: jpeg, png, jpg." });
+    }
+
+    // Check the file size (limit to 500KB)
+    const maxSize = 500 * 1024; // 500KB
+    if (req.file.size > maxSize) {
+      return res.status(400).json({ success: false, message: "File size exceeds limit (500KB)" });
+    }
+
+    // Convert image buffer to base64 (optional)
+    const photoBase24 = req.file.buffer.toString("base64");
+
+    // Create new blog document
     const newBlog = await BlogModel.create({
       title,
-      imgUrl,
+      imgUrl: photoBase24, // Save image in base64 format (or you can save a file path here instead)
       description,
       nameOfCreator: fullName,
       emailOfCreator: email,
@@ -23,18 +44,15 @@ const createBlog = async (req, res) => {
     });
 
     if (newBlog) {
-      res
-        .status(201)
-        .json({ success: true, message: "Blog created successfully", newBlog });
+      res.status(201).json({ success: true, message: "Blog created successfully", newBlog });
     } else {
-      res
-        .status(404)
-        .json({ success: false, message: "Something went wrong, try again!" });
+      res.status(404).json({ success: false, message: "Something went wrong, try again!" });
     }
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message:error?.message });
   }
 };
+
 
 const getAllBlog = async (req, res) => {
   try {
@@ -104,7 +122,7 @@ const updateUserSpecificBlog = async (req, res) => {
   try {
     const { _id, fullName, email } = req.user;
     let { id } = req.params; // The blog ID to update
-    const { title, imgUrl, description, categoryTitle } = req.body;
+    const { title, description, categoryTitle } = req.body;
 
     // Sanitize and validate the id
     id = id.trim(); // Remove any extraneous whitespace or newline characters
@@ -117,11 +135,31 @@ const updateUserSpecificBlog = async (req, res) => {
     }
 
     // Validate input fields
-    if (!title || !imgUrl || !description || !categoryTitle) {
+    if (!title || !description || !categoryTitle) {
       return res
         .status(400)
         .json({ success: false, message: "All fields are required" });
     }
+
+     // Validate that an image file is provided
+     if (!req.file) {
+      return res.status(400).json({ success: false, message: "Select the blog image" });
+    }
+
+    // Check if the uploaded file is an image (optional validation)
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ success: false, message: "Invalid image type. Allowed types: jpeg, png, jpg." });
+    }
+
+    // Check the file size (limit to 500KB)
+    const maxSize = 500 * 1024; // 500KB
+    if (req.file.size > maxSize) {
+      return res.status(400).json({ success: false, message: "File size exceeds limit (500KB)" });
+    }
+
+    // Convert image buffer to base64 (optional)
+    const photoBase24 = req.file.buffer.toString("base64");
 
     // Find the blog to update
     const userBlog = await BlogModel.findOne({ createdBy: _id, _id: id });
@@ -131,7 +169,7 @@ const updateUserSpecificBlog = async (req, res) => {
         id,
         {
           title,
-          imgUrl,
+          imgUrl:photoBase24,
           description,
           nameOfCreator: fullName,
           emailOfCreator: email,
@@ -262,14 +300,18 @@ const view = async (req, res) => {
     const { _id } = req.user;
 
     if (!mongoose.Types.ObjectId.isValid(blogId)) {
-      return res.status(400).json({ success: false, message: "Invalid blog ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid blog ID" });
     }
 
     const userBlog = await BlogModel.findOne({ _id: blogId });
     const loginUser = await UserModel.findById(_id);
 
     if (!userBlog) {
-      return res.status(404).json({ success: false, message: "Blog not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Blog not found" });
     }
 
     if (loginUser.isVerified) {
@@ -277,14 +319,15 @@ const view = async (req, res) => {
       await userBlog.save();
       return res.status(200).json({ success: true, message: null });
     } else {
-      return res.status(403).json({ success: false, message: "User is not verified" });
+      return res
+        .status(403)
+        .json({ success: false, message: "User is not verified" });
     }
   } catch (error) {
     console.error("Error in view controller:", error); // Add this line
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 module.exports = {
   createBlog,

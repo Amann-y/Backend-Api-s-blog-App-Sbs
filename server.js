@@ -34,11 +34,13 @@ app.use("*", (req,res)=>{
 
 // General Error Handling Middleware
 app.use((err, req, res, next) => {
-  res.status(500).json({ message: "Something went wrong!" });
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Something went wrong!";
+  res.status(statusCode).json({ message });
 });
 
 // connect Database
-connectDB(process.env.MONGODB_URL_ATLAS);
+connectDB(process.env.MONGODB_URL);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server Is Running On ${process.env.PORT}`);
