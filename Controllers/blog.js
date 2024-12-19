@@ -9,24 +9,35 @@ const createBlog = async (req, res) => {
   try {
     // Validate that required fields are provided
     if (!title || !description || !categoryTitle) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
     }
 
     // Validate that an image file is provided
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "Upload the blog image" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Upload the blog image" });
     }
 
     // Check if the uploaded file is an image (optional validation)
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ success: false, message: "Invalid image type. Allowed types: jpeg, png, jpg." });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invalid image type. Allowed types: jpeg, png, jpg.",
+        });
     }
 
     // Check the file size (limit to 500KB)
     const maxSize = 500 * 1024; // 500KB
     if (req.file.size > maxSize) {
-      return res.status(400).json({ success: false, message: "File size exceeds limit (500KB)" });
+      return res
+        .status(400)
+        .json({ success: false, message: "File size exceeds limit (500KB)" });
     }
 
     // Convert image buffer to base64 (optional)
@@ -44,15 +55,18 @@ const createBlog = async (req, res) => {
     });
 
     if (newBlog) {
-      res.status(201).json({ success: true, message: "Blog created successfully", newBlog });
+      res
+        .status(201)
+        .json({ success: true, message: "Blog created successfully", newBlog });
     } else {
-      res.status(404).json({ success: false, message: "Something went wrong, try again!" });
+      res
+        .status(404)
+        .json({ success: false, message: "Something went wrong, try again!" });
     }
   } catch (error) {
-    res.status(500).json({ success: false, message:error?.message });
+    res.status(500).json({ success: false, message: error?.message });
   }
 };
-
 
 const getAllBlog = async (req, res) => {
   try {
@@ -141,21 +155,30 @@ const updateUserSpecificBlog = async (req, res) => {
         .json({ success: false, message: "All fields are required" });
     }
 
-     // Validate that an image file is provided
-     if (!req.file) {
-      return res.status(400).json({ success: false, message: "Select the blog image" });
+    // Validate that an image file is provided
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Select the blog image" });
     }
 
     // Check if the uploaded file is an image (optional validation)
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({ success: false, message: "Invalid image type. Allowed types: jpeg, png, jpg." });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invalid image type. Allowed types: jpeg, png, jpg.",
+        });
     }
 
     // Check the file size (limit to 500KB)
     const maxSize = 500 * 1024; // 500KB
     if (req.file.size > maxSize) {
-      return res.status(400).json({ success: false, message: "File size exceeds limit (500KB)" });
+      return res
+        .status(400)
+        .json({ success: false, message: "File size exceeds limit (500KB)" });
     }
 
     // Convert image buffer to base64 (optional)
@@ -169,7 +192,7 @@ const updateUserSpecificBlog = async (req, res) => {
         id,
         {
           title,
-          imgUrl:photoBase24,
+          imgUrl: photoBase24,
           description,
           nameOfCreator: fullName,
           emailOfCreator: email,
@@ -324,7 +347,63 @@ const view = async (req, res) => {
         .json({ success: false, message: "User is not verified" });
     }
   } catch (error) {
-    console.error("Error in view controller:", error); // Add this line
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const saveBlog = async (req,res) => {
+  try {
+    const { id } = req.params;
+    const { _id } = req.user;
+  
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid blog ID" });
+    }
+
+    // Find the blog to save it
+    const userBlog = await UserModel.findOne({ _id });
+   
+    if (!userBlog?.saveBlogs?.includes(id)) {
+      const result = await UserModel.findByIdAndUpdate(
+        _id,
+        {
+          $push: {
+            saveBlogs: id,
+          },
+        },
+        { new: true }
+      );
+
+      if (result) {
+        res.status(201).json({
+          success: true,
+          message: "Blog saved successfully",
+          result,
+        });
+      }
+    } else {
+      const result = await UserModel.findByIdAndUpdate(
+        _id,
+        {
+          $pull: {
+            saveBlogs: id,
+          },
+        },
+        { new: true }
+      );
+
+      if (result) {
+        res.status(201).json({
+          success: true,
+          message: "Blog unsaved",
+          result,
+        });
+      }
+
+    }
+  } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -339,4 +418,5 @@ module.exports = {
   likeABlog,
   getAllLikes,
   view,
+  saveBlog
 };

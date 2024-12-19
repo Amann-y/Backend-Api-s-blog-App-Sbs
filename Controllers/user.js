@@ -41,11 +41,14 @@ const registerUser = async (req, res) => {
     if (output.data.success) {
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      const userName = email.split("@")[0] + Date.now().toString().slice(-5)
+  
       // Attempt to create the user
       const newUser = await UserModel.create({
         fullName,
         password: hashedPassword,
         email,
+        userName
       });
 
       sendEmailVerificationOTP(newUser)
@@ -138,6 +141,8 @@ const verifyEmail = async (req,res)=>{
     // delete email verification document
     await EmailVerificationModel.deleteMany({userId: existingUser._id})
 
+
+
     return res.status(200).json({ success: true, message: "Email verified successfully" });
 
   } catch (error) {
@@ -179,45 +184,45 @@ const loginUser = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid Credentials" });
     } else {
-      // const output = await axios.post(
-      //   `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaValue}`
-      // );
-      const token = await jwt.sign(
-        { userId: existingUser._id },
-        process.env.JWT_SECRET_KEY,
-        { expiresIn: "1d" }
+      const output = await axios.post(
+        `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaValue}`
       );
-      res.status(200).json({
-        success: true,
-        message: "User login successfully",
-        token,
-        userId: existingUser._id,
-        userName: existingUser.fullName,
-        userEmail: existingUser.email,
-        isAuth:true
-      });
+      // const token = await jwt.sign(
+      //   { userId: existingUser._id },
+      //   process.env.JWT_SECRET_KEY,
+      //   { expiresIn: "1d" }
+      // );
+      // res.status(200).json({
+      //   success: true,
+      //   message: "User login successfully",
+      //   token,
+      //   userId: existingUser._id,
+      //   userName: existingUser.fullName,
+      //   userEmail: existingUser.email,
+      //   isAuth:true
+      // });
 
-      // if (output.data.success) {
-      //   const token = await jwt.sign(
-      //     { userId: existingUser._id },
-      //     process.env.JWT_SECRET_KEY,
-      //     { expiresIn: "1d" }
-      //   );
-      //   res.status(200).json({
-      //     success: true,
-      //     message: "User login successfully",
-      //     token,
-      //     userId: existingUser._id,
-      //     userName: existingUser.fullName,
-      //     userEmail: existingUser.email,
-      //     isAuth:true
-      //   });
-      // } 
-      // else {
-      //   return res
-      //     .status(400)
-      //     .json({ success: false, message: "reCaptcha verification failed" });
-      // }
+      if (output.data.success) {
+        const token = await jwt.sign(
+          { userId: existingUser._id },
+          process.env.JWT_SECRET_KEY,
+          { expiresIn: "1d" }
+        );
+        res.status(200).json({
+          success: true,
+          message: "User login successfully",
+          token,
+          userId: existingUser._id,
+          userName: existingUser.fullName,
+          userEmail: existingUser.email,
+          isAuth:true
+        });
+      } 
+      else {
+        return res
+          .status(400)
+          .json({ success: false, message: "reCaptcha verification failed" });
+      }
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -352,6 +357,28 @@ const userPasswordReset = async (req,res)=>{
   }
 }
 
+const savedUserBlogs = async (req,res)=>{
+  try {
+    const {_id} = req.user
+    if(!_id){
+      return res.status(401).json({success:false, message:"Unauthorized User"})
+    }
+    const blogs = await UserModel.findById(_id).populate({
+      path:"saveBlogs",
+      select:"-password -createdAt -updatedAt -__v"
+    }).select("-password -isVerified -createdAt -__v -updatedAt")
+
+    if(!blogs){
+      return res.status(404).json({success:false, message:"No saved blog"})
+    }
+
+    return res.status(200).json({success:true, blogs})
+   
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || "Internal server error" });
+  }
+}
+
 module.exports = {
   registerUser,
   verifyEmail,
@@ -360,5 +387,6 @@ module.exports = {
   changeUserPassword,
   deleteUser,
   sendUserResetPasswordEmail,
-  userPasswordReset
+  userPasswordReset,
+  savedUserBlogs
 };

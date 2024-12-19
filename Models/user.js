@@ -15,16 +15,30 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    userName: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     password: {
       type: String,
       required: true,
       trim: true,
       minlength: 6,
     },
-    isVerified:{
-      type : Boolean,
-      default : false
-    }
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    bio: {
+      type: String,
+    },
+    saveBlogs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Blog",
+      },
+    ],
   },
   { timestamps: true }
 );

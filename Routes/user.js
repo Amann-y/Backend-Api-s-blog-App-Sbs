@@ -1,5 +1,5 @@
 const express = require("express")
-const {registerUser,loginUser,loggedUserController,changeUserPassword,deleteUser,sendUserResetPasswordEmail,userPasswordReset, verifyEmail } = require("../Controllers/user")
+const {registerUser,loginUser,loggedUserController,changeUserPassword,deleteUser,sendUserResetPasswordEmail,userPasswordReset, verifyEmail, savedUserBlogs } = require("../Controllers/user")
 const { checkUserAuth} = require("../Middlewares/auth")
 const rateLimit = require("express-rate-limit")
 
@@ -21,5 +21,7 @@ router.put("/change-password", checkUserAuth,changeUserPassword)
 router.delete("/delete-user",checkUserAuth,deleteUser)
 
 router.post("/verify-email", limit, verifyEmail)
+
+router.get("/saved-blogs",limit,checkUserAuth,savedUserBlogs)
 
 module.exports = router
