@@ -10,7 +10,8 @@ const {
   likeABlog,
   getAllLikes,
   view,
-  saveBlog
+  saveBlog,
+  getSavedBlog
 } = require("../Controllers/blog");
 const { upload } = require("../Utils/multer");
 
@@ -26,5 +27,6 @@ router.get("/blogs/:category", getBlogByCategory, likeABlog);
 router.get("/blog-likes/:postId", checkUserAuth,getAllLikes)
 router.put("/blog/views/:blogId",checkUserAuth,view)
 router.post("/blog-save/:id", checkUserAuth, saveBlog)
+router.get("/saved-blogs",checkUserAuth,getSavedBlog)
 
 module.exports = router;

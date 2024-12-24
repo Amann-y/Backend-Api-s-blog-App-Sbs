@@ -374,7 +374,7 @@ const saveBlog = async (req,res) => {
           },
         },
         { new: true }
-      );
+      ).select('saveBlogs');
 
       if (result) {
         res.status(201).json({
@@ -392,7 +392,7 @@ const saveBlog = async (req,res) => {
           },
         },
         { new: true }
-      );
+      ).select('saveBlogs');
 
       if (result) {
         res.status(201).json({
@@ -408,6 +408,28 @@ const saveBlog = async (req,res) => {
   }
 };
 
+const getSavedBlog = async (req,res)=>{
+  try {
+    const { _id } = req.user;
+  
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid blog ID" });
+    }
+
+    const savedBlog = await UserModel.findOne({ _id });
+    if(!savedBlog){
+      return res.status(404).json({ success: false, message: "No saved blog found" });
+    }else{
+      const {saveBlogs} = savedBlog
+      return res.status(200).json({ success: true, saveBlogs });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 module.exports = {
   createBlog,
   getAllBlog,
@@ -418,5 +440,6 @@ module.exports = {
   likeABlog,
   getAllLikes,
   view,
-  saveBlog
+  saveBlog,
+  getSavedBlog 
 };

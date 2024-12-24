@@ -30,7 +30,8 @@ const createComment = async (req, res) => {
 
 const getAllComments = async (req, res) => {
   try {
-    const comments = await CommentModel.find({});
+    const comments = await CommentModel.find({}).sort({ createdAt: -1 });
+    console.log(comments)
     if (comments.length > 0) {
       res.status(200).json({ success: true, comments });
     } else {
@@ -105,7 +106,7 @@ const getCommentsFromABlog = async (req, res) => {
   try {
     const { blogId } = req.params;
 
-    const comments = await CommentModel.find({ blogId });
+    const comments = await CommentModel.find({ blogId }).sort({ createdAt: -1 });
 
     if (comments.length > 0) {
       res.status(200).json({ success: true, comments });
