@@ -24,12 +24,10 @@ const createBlog = async (req, res) => {
     // Check if the uploaded file is an image (optional validation)
     const allowedMimeTypes = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Invalid image type. Allowed types: jpeg, png, jpg.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid image type. Allowed types: jpeg, png, jpg.",
+      });
     }
 
     // Check the file size (limit to 500KB)
@@ -165,12 +163,10 @@ const updateUserSpecificBlog = async (req, res) => {
     // Check if the uploaded file is an image (optional validation)
     const allowedMimeTypes = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowedMimeTypes.includes(req.file.mimetype)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Invalid image type. Allowed types: jpeg, png, jpg.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid image type. Allowed types: jpeg, png, jpg.",
+      });
     }
 
     // Check the file size (limit to 500KB)
@@ -351,11 +347,11 @@ const view = async (req, res) => {
   }
 };
 
-const saveBlog = async (req,res) => {
+const saveBlog = async (req, res) => {
   try {
     const { id } = req.params;
     const { _id } = req.user;
-  
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
         .status(400)
@@ -364,7 +360,7 @@ const saveBlog = async (req,res) => {
 
     // Find the blog to save it
     const userBlog = await UserModel.findOne({ _id });
-   
+
     if (!userBlog?.saveBlogs?.includes(id)) {
       const result = await UserModel.findByIdAndUpdate(
         _id,
@@ -374,7 +370,7 @@ const saveBlog = async (req,res) => {
           },
         },
         { new: true }
-      ).select('saveBlogs');
+      ).select("saveBlogs");
 
       if (result) {
         res.status(201).json({
@@ -392,7 +388,7 @@ const saveBlog = async (req,res) => {
           },
         },
         { new: true }
-      ).select('saveBlogs');
+      ).select("saveBlogs");
 
       if (result) {
         res.status(201).json({
@@ -401,17 +397,16 @@ const saveBlog = async (req,res) => {
           result,
         });
       }
-
     }
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const getSavedBlog = async (req,res)=>{
+const getSavedBlog = async (req, res) => {
   try {
     const { _id } = req.user;
-  
+
     if (!mongoose.Types.ObjectId.isValid(_id)) {
       return res
         .status(400)
@@ -419,16 +414,45 @@ const getSavedBlog = async (req,res)=>{
     }
 
     const savedBlog = await UserModel.findOne({ _id });
-    if(!savedBlog){
-      return res.status(404).json({ success: false, message: "No saved blog found" });
-    }else{
-      const {saveBlogs} = savedBlog
+    if (!savedBlog) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No saved blog found" });
+    } else {
+      const { saveBlogs } = savedBlog;
       return res.status(200).json({ success: true, saveBlogs });
     }
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
-}
+};
+
+const searchBlogs = async (req, res) => {
+  try {
+    const { search } = req.query;
+    const blogs = await BlogModel.find({
+      $or: [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { categoryTitle: { $regex: search, $options: "i" } },
+      ],
+    });
+
+    if (blogs.length <= 0) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Make sure all words are spelled correctly, Try different keywords",
+        });
+    }
+
+    return res.status(200).json({success:true, blogs})
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 module.exports = {
   createBlog,
@@ -441,5 +465,6 @@ module.exports = {
   getAllLikes,
   view,
   saveBlog,
-  getSavedBlog 
+  getSavedBlog,
+  searchBlogs,
 };
