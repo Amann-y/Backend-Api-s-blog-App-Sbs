@@ -6,9 +6,10 @@ const createBlog = async (req, res) => {
   const { title, description, categoryTitle } = req.body;
   const { fullName, email, _id: id } = req.user;
 
+  const tags = JSON.parse(req.body?.tags);
   try {
     // Validate that required fields are provided
-    if (!title || !description || !categoryTitle) {
+    if (!title || !description || !categoryTitle || !tags) {
       return res
         .status(400)
         .json({ success: false, message: "All fields are required" });
@@ -50,6 +51,7 @@ const createBlog = async (req, res) => {
       emailOfCreator: email,
       createdBy: id,
       categoryTitle,
+      tags,
     });
 
     if (newBlog) {
@@ -131,10 +133,11 @@ const deleteUserSpecificBlog = async (req, res) => {
 };
 
 const updateUserSpecificBlog = async (req, res) => {
+ 
   try {
     const { _id, fullName, email } = req.user;
     let { id } = req.params; // The blog ID to update
-    const { title, description, categoryTitle } = req.body;
+    const { title, description, categoryTitle, tags } = req.body;
 
     // Sanitize and validate the id
     id = id.trim(); // Remove any extraneous whitespace or newline characters
@@ -151,6 +154,26 @@ const updateUserSpecificBlog = async (req, res) => {
       return res
         .status(400)
         .json({ success: false, message: "All fields are required" });
+    }
+
+    // Parse the tags if they exist and if they are a string
+    let parsedTags = [];
+    if (tags) {
+      try {
+        parsedTags = JSON.parse(tags); // Convert the stringified tags back into an array
+
+        // Ensure there are no more than 10 tags
+        if (parsedTags.length > 10) {
+          return res.status(400).json({
+            success: false,
+            message: "You can only add up to 10 tags.",
+          });
+        }
+      } catch (err) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid tags format" });
+      }
     }
 
     // Validate that an image file is provided
@@ -194,6 +217,7 @@ const updateUserSpecificBlog = async (req, res) => {
           emailOfCreator: email,
           createdBy: _id,
           categoryTitle,
+          tags: parsedTags, // Store the parsed tags
         },
         { new: true }
       );
@@ -212,7 +236,7 @@ const updateUserSpecificBlog = async (req, res) => {
       });
     }
   } catch (error) {
-    // console.error(error)
+    console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -439,16 +463,14 @@ const searchBlogs = async (req, res) => {
     });
 
     if (blogs.length <= 0) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "Make sure all words are spelled correctly, Try different keywords",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Make sure all words are spelled correctly, Try different keywords",
+      });
     }
 
-    return res.status(200).json({success:true, blogs})
+    return res.status(200).json({ success: true, blogs });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

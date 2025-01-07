@@ -45,6 +45,9 @@ const blogSchema = new mongoose.Schema(
     views:{
       type:Number,
       default:0
+    },
+    tags:{
+      type : [String]
     }
   },
   { timestamps: true }
